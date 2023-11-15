@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:rinventory/menu.dart';
+import 'package:rinventory/screens/menu.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,10 +14,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'RAF Inventory',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
       ),
-      home: MyHomePage(),
+      home: MyHomePage()
     );
   }
 }
