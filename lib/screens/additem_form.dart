@@ -1,4 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:rinventory/screens/menu.dart';
 import 'package:rinventory/widgets/left_drawer.dart';
 
 class ShopFormPage extends StatefulWidget {
@@ -17,6 +22,7 @@ class _ShopFormPageState extends State<ShopFormPage> {
   int _power = 0;
   @override
   Widget build(BuildContext context) {
+    final request = context.watch<CookieRequest>();
     return Scaffold(
       appBar: AppBar(
         title: const Center(
@@ -164,40 +170,36 @@ class _ShopFormPageState extends State<ShopFormPage> {
                       backgroundColor:
                           MaterialStateProperty.all(Colors.indigo),
                     ),
-                    onPressed: () {
+                    onPressed: () async {
                       if (_formKey.currentState!.validate()) {
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return AlertDialog(
-                              title: const Text('Item successfully saved'),
-                              content: SingleChildScrollView(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Name: $_name'),
-                                    Text('Amount: $_amount'),
-                                    Text('Description: $_description'),
-                                    Text('Category: $_category'),
-                                    Text('Power: $_power'),
-                                  ],
-                                ),
-                              ),
-                              actions: [
-                                TextButton(
-                                  child: const Text('OK'),
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                              ],
-                            );
-                          },
-                        );
+                          // Send request to Django and wait for the response
+                          final response = await request.postJson(
+                          "http://127.0.0.1:8000/create-flutter/",
+                          jsonEncode(<String, String>{
+                              'name': _name,
+                              'price': _amount.toString(),
+                              'description': _description,
+                              'category': _category,
+                              'power': _power.toString(),
+                          }));
+                          if (response['status'] == 'success') {
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(const SnackBar(
+                              content: Text("New product has saved successfully!"),
+                              ));
+                              Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => MyHomePage()),
+                              );
+                          } else {
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(const SnackBar(
+                                  content:
+                                      Text("Something went wrong, please try again."),
+                              ));
+                          }
                       }
-                      _formKey.currentState!.reset();
-                    },
+                  },
                     child: const Text(
                       "Save",
                       style: TextStyle(color: Colors.white),
