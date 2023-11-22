@@ -592,3 +592,433 @@ Mobile inventory app.
     }
     }
     ```
+
+## Assignment 9
+
+### Can we retrieve JSON data without creating a model first? If yes, is it better than creating a model before retrieving JSON data
+
+- Retrieving JSON data from an API doesn't require creating a machine learning model. We can use tools like fetch in JavaScript or requests in Python for HTTP requests. Creating a model is necessary for tasks like prediction or classification based on patterns in data, not for simple data retrieval and processing.
+
+### Explain the function of CookieRequest and explain why a CookieRequest instance needs to be shared with all components in a Flutter application.
+
+- If there were a hypothetical CookieRequest class in Flutter, sharing an instance across components ensures consistent cookie handling throughout the application. This approach centralizes configuration, maintains consistency, and avoids redundancy in managing cookie-related settings for network requests.
+
+### Explain the mechanism of fetching data from JSON until it can be displayed on Flutter.
+
+1. HTTP Request:
+    - Use a package like http to make an HTTP request to a JSON API.
+
+2. Parse JSON:
+    - Decode the JSON data using dart:convert.
+
+3. Create Dart Objects:
+    - Define Dart classes/models to represent the JSON structure.
+
+4. Display in Widgets:
+    - Use Flutter widgets to display data in the user interface.
+
+### Explain the authentication mechanism from entering account data on Flutter to Django authentication completion and the display of menus on Flutter.
+
+1. User Input in Flutter:
+    - Users enter credentials in the Flutter app.
+
+2. HTTP Request to Django:
+    - Flutter sends credentials via HTTP to Django.
+
+3. Django Authentication:
+    - Django authenticates users.
+
+4. Token Generation (Optional):
+    - Django may generate a token for the authenticated user.
+
+5. Response to Flutter:
+    - Django responds with authentication status and, if applicable, a token.
+
+6. Update Flutter UI:
+    - Flutter updates the UI based on authentication status.
+
+7. Display Menus in Flutter:
+    - If authenticated, fetch and display menus using additional requests.
+
+8. User Interaction in Flutter:
+    - Users interact with menus triggering further actions or requests.
+
+### List all the widgets you used in this assignment and explain their respective functions.
+
+- **FutureBuilder** : to build a widget based on an async state.
+
+- **ListView** : to display the children as a list layout.
+
+- **GestureDetector** : to detect gesture on a widget
+
+- **TextFormField** : to accept user text input
+
+- **ElevatedButton** : to create a button
+
+- **Container** : to contain a widget
+
+### Explain how you implement the checklist above step by step!
+
+- Create Login Screen
+    ```dart
+    // ignore_for_file: use_build_context_synchronously
+
+    import 'package:rinventory/screens/menu.dart';
+    import 'package:flutter/material.dart';
+    import 'package:pbp_django_auth/pbp_django_auth.dart';
+    import 'package:provider/provider.dart';
+
+    void main() {
+        runApp(const LoginApp());
+    }
+
+    class LoginApp extends StatelessWidget {
+    const LoginApp({super.key});
+
+    @override
+    Widget build(BuildContext context) {
+        return MaterialApp(
+            title: 'Login',
+            theme: ThemeData(
+                primarySwatch: Colors.blue,
+        ),
+        home: const LoginPage(),
+        );
+        }
+    }
+
+    class LoginPage extends StatefulWidget {
+        const LoginPage({super.key});
+
+        @override
+        _LoginPageState createState() => _LoginPageState();
+    }
+
+    class _LoginPageState extends State<LoginPage> {
+        final TextEditingController _usernameController = TextEditingController();
+        final TextEditingController _passwordController = TextEditingController();
+
+        @override
+        Widget build(BuildContext context) {
+            final request = context.watch<CookieRequest>();
+            return Scaffold(
+                appBar: AppBar(
+                    title: const Text('Login'),
+                ),
+                body: Container(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                            TextField(
+                                controller: _usernameController,
+                                decoration: const InputDecoration(
+                                    labelText: 'Username',
+                                ),
+                            ),
+                            const SizedBox(height: 12.0),
+                            TextField(
+                                controller: _passwordController,
+                                decoration: const InputDecoration(
+                                    labelText: 'Password',
+                                ),
+                                obscureText: true,
+                            ),
+                            const SizedBox(height: 24.0),
+                            ElevatedButton(
+                                onPressed: () async {
+                                    String username = _usernameController.text;
+                                    String password = _passwordController.text;
+
+                                    // Check credentials
+                                    final response = await request.login("http://127.0.0.1:8000//auth/login/", {
+                                    'username': username,
+                                    'password': password,
+                                    });
+
+                                    if (request.loggedIn) {
+                                        String message = response['message'];
+                                        String uname = response['username'];
+                                        Navigator.pushReplacement(
+                                            context,
+                                            MaterialPageRoute(builder: (context) => MyHomePage()),
+                                        );
+                                        ScaffoldMessenger.of(context)
+                                            ..hideCurrentSnackBar()
+                                            ..showSnackBar(
+                                                SnackBar(content: Text("$message Welcome, $uname.")));
+                                        } else {
+                                        showDialog(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                                title: const Text('Login Failed'),
+                                                content:
+                                                    Text(response['message']),
+                                                actions: [
+                                                    TextButton(
+                                                        child: const Text('OK'),
+                                                        onPressed: () {
+                                                            Navigator.pop(context);
+                                                        },
+                                                    ),
+                                                ],
+                                            ),
+                                        );
+                                    }
+                                },
+                                child: const Text('Login'),
+                            ),
+                        ],
+                    ),
+                ),
+            );
+        }
+    }
+    ```
+
+- Create custom model
+    ```dart
+    // To parse this JSON data, do
+    //
+    //     final product = productFromJson(jsonString);
+
+    import 'dart:convert';
+
+    List<Product> productFromJson(String str) => List<Product>.from(json.decode(str).map((x) => Product.fromJson(x)));
+
+    String productToJson(List<Product> data) => json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
+
+    class Product {
+        String model;
+        int pk;
+        Fields fields;
+
+        Product({
+            required this.model,
+            required this.pk,
+            required this.fields,
+        });
+
+        factory Product.fromJson(Map<String, dynamic> json) => Product(
+            model: json["model"],
+            pk: json["pk"],
+            fields: Fields.fromJson(json["fields"]),
+        );
+
+        Map<String, dynamic> toJson() => {
+            "model": model,
+            "pk": pk,
+            "fields": fields.toJson(),
+        };
+    }
+
+    class Fields {
+        int user;
+        String name;
+        int amount;
+        String description;
+        String category;
+        int power;
+
+        Fields({
+            required this.user,
+            required this.name,
+            required this.amount,
+            required this.description,
+            required this.category,
+            required this.power,
+        });
+
+        factory Fields.fromJson(Map<String, dynamic> json) => Fields(
+            user: json["user"],
+            name: json["name"],
+            amount: json["amount"],
+            description: json["description"],
+            category: json["category"],
+            power: json["power"],
+        );
+
+        Map<String, dynamic> toJson() => {
+            "user": user,
+            "name": name,
+            "amount": amount,
+            "description": description,
+            "category": category,
+            "power": power,
+        };
+    }
+    ```
+
+- Create View Produc Screen
+    ```dart
+    import 'package:flutter/material.dart';
+    import 'package:http/http.dart' as http;
+    import 'dart:convert';
+    import 'package:rinventory/models/product.dart';
+    import 'package:rinventory/screens/item_detail.dart';
+    import 'package:rinventory/widgets/left_drawer.dart';
+
+    class ProductPage extends StatefulWidget {
+        const ProductPage({Key? key}) : super(key: key);
+
+        @override
+        _ProductPageState createState() => _ProductPageState();
+    }
+
+    class _ProductPageState extends State<ProductPage> {
+    Future<List<Product>> fetchProduct() async {
+        // TODO: Change the URL to your Django app's URL. Don't forget to add the trailing slash (/) if needed.
+        var url = Uri.parse(
+            'http:///127.0.0.1:8000/json/');
+        var response = await http.get(
+            url,
+            headers: {"Content-Type": "application/json"},
+        );
+
+        // decode the response to JSON
+        var data = jsonDecode(utf8.decode(response.bodyBytes));
+
+        // convert the JSON to Product object
+        List<Product> list_product = [];
+        for (var d in data) {
+            if (d != null) {
+                list_product.add(Product.fromJson(d));
+            }
+        }
+        return list_product;
+    }
+
+    @override
+    Widget build(BuildContext context) {
+        return Scaffold(
+            appBar: AppBar(
+            title: const Text('Product'),
+            ),
+            drawer: const LeftDrawer(),
+            body: FutureBuilder(
+                future: fetchProduct(),
+                builder: (context, AsyncSnapshot snapshot) {
+                    if (snapshot.data == null) {
+                        return const Center(child: CircularProgressIndicator());
+                    } else {
+                        if (!snapshot.hasData) {
+                        return const Column(
+                            children: [
+                            Text(
+                                "No product data available.",
+                                style:
+                                    TextStyle(color: Color(0xff59A5D8), fontSize: 20),
+                            ),
+                            SizedBox(height: 8),
+                            ],
+                        );
+                    } else {
+                        return ListView.builder(
+                        itemCount: snapshot.data!.length,
+                        itemBuilder: (_, index) => InkWell(
+                            onTap: () {
+                                Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        ItemDetailPage(item: snapshot.data![index]),
+                                ),
+                                );
+                            },
+                            child: Container(
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                                padding: const EdgeInsets.all(20.0),
+                                child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                    Text(
+                                    "${snapshot.data![index].fields.name}",
+                                    style: const TextStyle(
+                                        fontSize: 18.0,
+                                        fontWeight: FontWeight.bold,
+                                    ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text("${snapshot.data![index].fields.amount}"),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                        "${snapshot.data![index].fields.description}")
+                                ],
+                            ),
+                            )
+                        )
+                        );
+                    }
+                    }
+                }
+                )
+            );
+        }
+    }
+    ```
+
+- Create Detail Product Screen
+    ```dart
+    import 'package:flutter/material.dart';
+    import 'package:rinventory/models/product.dart';
+    // Import your item model
+
+    class ItemDetailPage extends StatelessWidget {
+    final Product item; // Pass the selected item to the page
+
+    ItemDetailPage({required this.item});
+
+    @override
+    Widget build(BuildContext context) {
+        return Scaffold(
+        appBar: AppBar(
+            title: const Text('Item Details'),
+            leading: IconButton(
+            icon: const Icon(Icons.arrow_back_sharp),
+            tooltip: 'Go back to item list',
+            onPressed: () {
+                Navigator.pop(context);
+            },
+            ),
+            backgroundColor: Colors.indigo,
+            foregroundColor: Colors.white,
+        ),
+        body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+                Text(
+                'Name: ${item.fields.name}',
+                style: const TextStyle(fontSize: 24),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                'Amount: ${item.fields.amount}',
+                style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                'Description: ${item.fields.description}',
+                style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                'Category: ${item.fields.category}',
+                style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                'Power: ${item.fields.power}',
+                style: const TextStyle(fontSize: 16),
+                ),
+                // Add more details as needed
+            ],
+            ),
+        ),
+        );
+    }
+    }
+    ```
